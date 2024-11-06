@@ -4,13 +4,16 @@ config*.json
 *.sqlite-shm
 *.sqlite-wal
 logfile.txt
-user_data/*
-!user_data/strategy/sample_strategy.py
+# user_data/*
 !user_data/notebooks
 !user_data/models
 !user_data/freqaimodels
 user_data/freqaimodels/*
 user_data/models/*
+user_data/data/*
+user_data/logs/*
+user_data/backtest_results/*
+user_data/hyperopts/*
 user_data/notebooks/*
 freqtrade-plot.html
 freqtrade-profit-plot.html
@@ -52,6 +55,8 @@ wheels/
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+*.exe
+*.dll
 
 # Installer logs
 pip-log.txt

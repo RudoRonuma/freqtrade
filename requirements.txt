@@ -62,3 +62,5 @@ janus==1.1.0
 
 ast-comments==1.2.2
 packaging==24.1
+
+scikit-optimize==0.10.2
