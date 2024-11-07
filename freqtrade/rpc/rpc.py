@@ -808,7 +808,23 @@ class RPC:
 
     # fetches all of the positions from the underlying exchange api.
     def _rpc_fetch_futures_positions(self, standard: bool = True) -> dict:
-        return self._freqtrade.exchange._api.fetch_positions(None, {"standard": standard})
+        results: list = self._freqtrade.exchange._api.fetch_positions(None, {"standard": standard})
+        for current in results:
+            if not isinstance(current, dict):
+                continue
+
+            if not current.get("lastPrice", None):
+                current["lastPrice"] = str(float(current["info"]["currentPrice"]))
+            else:
+                current["lastPrice"] = str(float(current["lastPrice"]))
+
+            if not current.get("symbol", None):
+                current["symbol"] = current["info"]["symbol"]
+
+            if not current.get("positionSide", None):
+                current["positionSide"] = current["info"]["positionSide"]
+
+        return results
 
     def _rpc_start(self) -> dict[str, str]:
         """Handler for start"""

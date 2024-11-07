@@ -1190,17 +1190,31 @@ class Telegram(RPCHandler):
     @authorized_only
     async def _positions(self, update: Update, context: CallbackContext) -> None:
         results = self._rpc._rpc_fetch_futures_positions()
-        output = f"*Positions count:* {len(results)}"
+        output = f"*Positions count:* {len(results)}\n"
 
         for current_position in results:
-            output += "-" if current_position["unrealizedPnl"] > 0 else ""
-            output += f" {current_position['symbol']} {current_position['positionSide']}"
-            output += f" {current_position['leverage']}X\n"
-            output += f" *• Enter Price:* {current_position['entryPrice']}\n"
-            output += f" *• Last Price:* {current_position['lastPrice']}\n"
-            output += f" *• Profit:* {current_position['unrealizedProfit']}\n"
-            output += f" *• TP:* {current_position['takeProfitPrice']} /"
-            output += f" *SL:* {current_position['stopLossPrice']}"
+            curr_output = "\n"
+            info: dict = current_position['info']
+            profit = current_position["unrealizedPnl"]
+            if not profit and info.get('unrealizedProfit', None):
+                profit = info['unrealizedProfit']
+
+            curr_output += "+" if profit > 0 else "-"
+            curr_output += f" *{current_position['symbol']}* {current_position['positionSide']}"
+            curr_output += f" {current_position['leverage']}X\n"
+            curr_output += f" *• Enter Price:* {current_position['entryPrice']}\n"
+            curr_output += f" *• Last Price:* {current_position['lastPrice']}\n"
+            curr_output += f" *• Profit:* {info['unrealizedProfit']}\n"
+
+            if current_position['takeProfitPrice'] or current_position['stopLossPrice']:
+                curr_output += f" *• TP:* {current_position['takeProfitPrice']} /"
+                curr_output += f" *SL:* {current_position['stopLossPrice']}"
+
+            if len(curr_output + output) >= MAX_MESSAGE_LENGTH:
+                await self._send_msg(output)
+                output = curr_output
+            else:
+                output += curr_output
 
         await self._send_msg(output)
 
