@@ -110,6 +110,10 @@ ARGS_TEST_PAIRLIST = [
     "exchange",
 ]
 
+ARGS_TEST_BINGX_ULTRA = [
+    "user_data_dir",
+]
+
 ARGS_CREATE_USERDIR = ["user_data_dir", "reset"]
 
 ARGS_BUILD_CONFIG = ["config"]
@@ -377,6 +381,7 @@ class Arguments:
             start_show_trades,
             start_strategy_update,
             start_test_pairlist,
+            start_test_bingx_ultra,
             start_trading,
             start_webserver,
         )
@@ -608,6 +613,14 @@ class Arguments:
         )
         test_pairlist_cmd.set_defaults(func=start_test_pairlist)
         self._build_args(optionlist=ARGS_TEST_PAIRLIST, parser=test_pairlist_cmd)
+
+        # Add test-bingx-ultra subcommand
+        test_bingx_ultra_cmd = subparsers.add_parser(
+            "test-bingx_ultra",
+            help="Test bingx_ultra module.",
+        )
+        test_bingx_ultra_cmd.set_defaults(func=start_test_bingx_ultra)
+        self._build_args(optionlist=ARGS_TEST_BINGX_ULTRA, parser=test_bingx_ultra_cmd)
 
         # Add db-convert subcommand
         convert_db = subparsers.add_parser(
