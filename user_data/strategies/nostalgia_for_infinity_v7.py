@@ -1,14 +1,21 @@
-import freqtrade.vendor.qtpylib.indicators as qtpylib
+from datetime import datetime, timedelta
+from functools import reduce
+
 import numpy as np
 import talib.abstract as ta
-from freqtrade.strategy.interface import IStrategy
-from freqtrade.strategy import (merge_informative_pair,
-                                DecimalParameter, IntParameter, CategoricalParameter)
 from pandas import DataFrame, Series
-from functools import reduce
-from freqtrade.persistence import Trade
-from datetime import datetime, timedelta
 from technical.indicators import zema
+
+import freqtrade.vendor.qtpylib.indicators as qtpylib
+from freqtrade.persistence import Trade
+from freqtrade.strategy import (
+    CategoricalParameter,
+    DecimalParameter,
+    IntParameter,
+    merge_informative_pair,
+)
+from freqtrade.strategy.interface import IStrategy
+
 
 # taken from https://github.com/reuniware/FreqTrade_Work/blob/main/strategies/NostalgiaForInfinityV7.py
 
