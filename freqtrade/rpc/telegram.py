@@ -1192,6 +1192,16 @@ class Telegram(RPCHandler):
         results = self._rpc._rpc_fetch_futures_positions()
         output = f"*Positions count:* {len(results)}"
 
+        for current_position in results:
+            output += "-" if current_position["unrealizedPnl"] > 0 else ""
+            output += f" {current_position['symbol']} {current_position['positionSide']}"
+            output += f" {current_position['leverage']}X\n"
+            output += f" *• Enter Price:* {current_position['entryPrice']}\n"
+            output += f" *• Last Price:* {current_position['lastPrice']}\n"
+            output += f" *• Profit:* {current_position['unrealizedProfit']}\n"
+            output += f" *• TP:* {current_position['takeProfitPrice']} /"
+            output += f" *SL:* {current_position['stopLossPrice']}"
+
         await self._send_msg(output)
 
     @authorized_only
