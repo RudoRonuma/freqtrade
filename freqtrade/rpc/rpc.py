@@ -806,6 +806,10 @@ class RPC:
             "note": "Simulated balances" if self._freqtrade.config["dry_run"] else "",
         }
 
+    # fetches all of the positions from the underlying exchange api.
+    def _rpc_fetch_futures_positions(self, standard: bool = True) -> dict:
+        return self._freqtrade.exchange._api.fetch_positions(None, {"standard": standard})
+
     def _rpc_start(self) -> dict[str, str]:
         """Handler for start"""
         if self._freqtrade.state == State.RUNNING:

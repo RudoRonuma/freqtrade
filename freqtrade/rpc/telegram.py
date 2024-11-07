@@ -245,6 +245,7 @@ class Telegram(RPCHandler):
             CommandHandler("status", self._status),
             CommandHandler("profit", self._profit),
             CommandHandler("balance", self._balance),
+            CommandHandler("positions", self._positions),
             CommandHandler("start", self._start),
             CommandHandler("stop", self._stop),
             CommandHandler(["forcesell", "forceexit", "fx"], self._force_exit),
@@ -1185,6 +1186,13 @@ class Telegram(RPCHandler):
         await self._send_msg(
             output, reload_able=True, callback_path="update_balance", query=update.callback_query
         )
+
+    @authorized_only
+    async def _positions(self, update: Update, context: CallbackContext) -> None:
+        results = self._rpc._rpc_fetch_futures_positions()
+        output = f"*Positions count:* {len(results)}"
+
+        await self._send_msg(output)
 
     @authorized_only
     async def _start(self, update: Update, context: CallbackContext) -> None:
