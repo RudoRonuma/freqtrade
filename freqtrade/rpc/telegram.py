@@ -1190,6 +1190,18 @@ class Telegram(RPCHandler):
             f"\t`{result['stake']}: {total_stake}`{stake_improve}\n"
             f"\t`{result['symbol']}: {value}`{fiat_val}\n"
         )
+
+        standard_futures_balance = self._rpc._rpc_balance_standard_futures()
+        if standard_futures_balance and standard_futures_balance.get("total", None):
+            total_std: dict = standard_futures_balance["total"]
+            output += "\n\n*Standard Futures Account:*\n"
+            for current_currency in total_std:
+                amount = float(total_std[current_currency] or 0)
+                if not amount or amount < 0.0001:
+                    continue
+                output += (
+                    f" *• {current_currency}*: {total_std[current_currency]}\n"
+                )
         await self._send_msg(
             output, reload_able=True, callback_path="update_balance", query=update.callback_query
         )

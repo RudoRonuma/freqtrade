@@ -691,6 +691,10 @@ class RPC:
 
         return est_stake, est_bot_stake
 
+    def _rpc_balance_standard_futures(self) -> dict:
+        """Returns current account balance in standard futures account."""
+        return self._freqtrade.exchange._api.fetch_balance({"standard": True})
+
     def _rpc_balance(self, stake_currency: str, fiat_display_currency: str) -> dict:
         """Returns current account balance per crypto"""
         currencies: list[dict] = []
