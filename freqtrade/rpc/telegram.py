@@ -1209,7 +1209,14 @@ class Telegram(RPCHandler):
     @authorized_only
     async def _positions(self, update: Update, context: CallbackContext) -> None:
         results = self._rpc._rpc_fetch_futures_positions()
+        if not results:
+            await self._send_msg("No open positions.")
+            return
+
         output = f"*Positions count:* {len(results)}\n"
+
+        total_profit = sum([p["unrealizedPnl"] for p in results])
+        output += f"*Total Profit:* {total_profit}\n"
 
         for current_position in results:
             curr_output = "\n"
