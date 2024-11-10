@@ -293,6 +293,7 @@ class Telegram(RPCHandler):
             CallbackQueryHandler(self._monthly, pattern="update_monthly"),
             CallbackQueryHandler(self._profit, pattern="update_profit"),
             CallbackQueryHandler(self._balance, pattern="update_balance"),
+            CallbackQueryHandler(self._positions, pattern="update_positions"),
             CallbackQueryHandler(self._performance, pattern="update_performance"),
             CallbackQueryHandler(
                 self._enter_tag_performance, pattern="update_enter_tag_performance"
@@ -1242,7 +1243,9 @@ class Telegram(RPCHandler):
             else:
                 output += curr_output
 
-        await self._send_msg(output)
+        await self._send_msg(
+            output, reload_able=True, callback_path="update_positions", query=update.callback_query
+        )
 
     @authorized_only
     async def _start(self, update: Update, context: CallbackContext) -> None:
