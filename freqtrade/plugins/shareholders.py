@@ -32,7 +32,11 @@ class ShareholderInfo:
         self.percentage = percentage or Decimal("0.0")
 
     def to_dict(self) -> dict:
-        return {"name": self.name, "balance": self.balance, "percentage": self.percentage}
+        return {
+            "name": self.name,
+            "balance": str(self.balance),
+            "percentage": str(self.percentage),
+        }
 
     @staticmethod
     def from_dict(data: dict) -> "ShareholderInfo":
@@ -225,9 +229,9 @@ class ShareholdersManager:
 
     def to_dict(self) -> dict:
         return {
-            "total_assets": self.total_assets,
-            "total_platform_assets": self.total_platform_assets,
-            "reserves": self.reserves,
+            "total_assets": str(self.total_assets),
+            "total_platform_assets": str(self.total_platform_assets),
+            "reserves": str(self.reserves),
             "shareholders": [shareholder.to_dict() for shareholder in self.shareholders],
             "last_updated_at": self.last_updated_at.strftime("%Y-%m-%d %H:%M:%S"),
         }
