@@ -9,6 +9,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from freqtrade.constants import Config
+from freqtrade.util import normalize_money, str_to_decimal
 
 
 DEFAULT_SHAREHOLDERS_FILE = "shareholders.json"
@@ -142,11 +143,11 @@ class ShareholdersManager:
                 continue
 
             if line.lower().startswith("total assets"):
-                self.total_assets = Decimal(line.split(":")[1])
+                self.total_assets = str_to_decimal(line.split(":")[1])
                 continue
 
             if line.lower().startswith("Total platform assets"):
-                self.total_assets = Decimal(line.split(":")[1])
+                self.total_platform_assets = str_to_decimal(line.split(":")[1])
                 continue
 
             if line.lower().startswith("share percentages"):
@@ -191,6 +192,7 @@ class ShareholdersManager:
     def __str__(self) -> str:
         result = self._header_comment + "\n"
         result += f"Total assets: ${self.total_assets}\n"
+        result += f"Total platform assets: ${self.total_platform_assets}\n\n"
         result += "Share percentages:\n"
         for shareholder in self.shareholders:
             result += f"{shareholder.name}: {shareholder.percentage}\n"
@@ -203,17 +205,18 @@ class ShareholdersManager:
         return result
 
     def to_markdown_str(self) -> str:
-        result = f"*{self._header_comment}*\n"
-        result += f"*Total assets*: ${self.total_assets}$\n"
-        result += f"*Total platform assets*: ${self.total_platform_assets}$\n\n"
+        result = f"*{self._header_comment}*\n\n"
+        result += f"*Total assets*: {normalize_money(self.total_assets)}\n"
+        result += f"*Total platform assets*: {normalize_money(self.total_platform_assets)}\n\n"
+        result += "------------------------------------\n\n"
         result += "*Share percentages*:\n"
         for shareholder in self.shareholders:
             result += f"*{shareholder.name}*: {shareholder.percentage}\n"
-        result += "------------------------------------\n"
+        result += "------------------------------------\n\n"
         result += "*Shareholders' balance*:\n"
         for shareholder in self.shareholders:
-            result += f"*{shareholder.name}*: ${shareholder.balance}\n"
-        result += "------------------------------------\n"
+            result += f"*{shareholder.name}*: {normalize_money(shareholder.balance)}\n"
+        result += "------------------------------------\n\n"
         result += f"*Last updated at*: `{self.last_updated_at.strftime('%Y-%m-%d %H:%M:%S')}`\n"
         return result
 
@@ -233,6 +236,7 @@ class ShareholdersManager:
 
         manager = ShareholdersManager(config=config)
         manager.total_assets = data.get("total_assets", Decimal("0.0"))
+        manager.total_platform_assets = data.get("total_platform_assets", Decimal("0.0"))
         manager.shareholders = [
             ShareholderInfo.from_dict(shareholder_data)
             for shareholder_data in data.get("shareholders", [])
@@ -249,7 +253,8 @@ class ShareholdersManager:
 
     def save_to_file(self, file_path: str = None) -> None:
         file_path = file_path or self._config["shareholders"].get(
-            "file_path", DEFAULT_SHAREHOLDERS_FILE)
+            "file_path", DEFAULT_SHAREHOLDERS_FILE
+        )
         with Path(file_path).open("w") as file:
             file.write(self.to_json())
 
