@@ -373,9 +373,9 @@ class Telegram(RPCHandler):
             CallbackQueryHandler(self._force_enter_inline, pattern=r"force_enter__\S+"),
         ]
         message_handlers = [
-            MessageHandler(RegexFilter(r"(?i)^\s*#\s*trade.*$"), self._trade_message_handler),
-            MessageHandler(RegexFilter(r"(?i)^\s*#\s*deposit.*$"), self._deposit_message_handler),
-            MessageHandler(RegexFilter(r"(?i)^\s*#\s*withdraw.*$"), self._withdraw_message_handler),
+            MessageHandler(RegexFilter(r"(?im)^\s*#\s*trade.*$"), self._trade_msg_handler),
+            MessageHandler(RegexFilter(r"(?im)^\s*#\s*deposit.*$"), self._deposit_msg_handler),
+            MessageHandler(RegexFilter(r"(?im)^\s*#\s*withdraw.*$"), self._withdraw_msg_handler),
         ]
 
         for handle in handles:
@@ -1357,7 +1357,7 @@ class Telegram(RPCHandler):
                 logger.error(f"Error saving shareholders to file: {ex}")
 
     @shareholders_management_only
-    async def _trade_message_handler(self, update: Update, context: CallbackContext) -> None:
+    async def _trade_msg_handler(self, update: Update, context: CallbackContext) -> None:
         """
         Handles the message with #Trade
         """
@@ -1377,6 +1377,7 @@ class Telegram(RPCHandler):
         s_manager = self._rpc._shareholders_manager
         if not s_manager:
             return
+
         s_manager.add_total_profit(total_trade_profit)
 
         shareholders = self._config.get("shareholders", None)
@@ -1405,7 +1406,7 @@ class Telegram(RPCHandler):
         await update.effective_message.set_reaction("👍")
 
     @shareholders_management_only
-    async def _deposit_message_handler(self, update: Update, context: CallbackContext) -> None:
+    async def _deposit_msg_handler(self, update: Update, context: CallbackContext) -> None:
         """
         Handles the message with #Deposit
         """
@@ -1462,7 +1463,7 @@ class Telegram(RPCHandler):
         await update.effective_message.set_reaction("👍")
 
     @shareholders_management_only
-    async def _withdraw_message_handler(self, update: Update, context: CallbackContext) -> None:
+    async def _withdraw_msg_handler(self, update: Update, context: CallbackContext) -> None:
         """
         Handles the message with #Withdraw
         """
