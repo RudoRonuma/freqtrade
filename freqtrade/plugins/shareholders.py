@@ -136,21 +136,23 @@ class ShareholdersManager:
             if not line or line.startswith("#"):
                 continue
 
+            normalized_line = line.strip().lower()
+
             if line.startswith("---"):
                 # end of section
                 is_in_share_percentages = False
                 is_in_shareholders_balance = False
                 continue
 
-            if line.lower().startswith("total assets"):
+            if normalized_line.startswith("total assets"):
                 self.total_assets = str_to_decimal(line.split(":")[1])
                 continue
 
-            if line.lower().startswith("Total platform assets"):
+            if normalized_line.startswith("Total platform assets"):
                 self.total_platform_assets = str_to_decimal(line.split(":")[1])
                 continue
 
-            if line.lower().startswith("share percentages"):
+            if normalized_line.startswith("share percentages"):
                 is_in_share_percentages = True
                 is_in_shareholders_balance = False
                 continue
@@ -165,7 +167,7 @@ class ShareholdersManager:
                 loaded_shareholders[current_shareholder.name] = current_shareholder
                 self.shareholders.append(current_shareholder)
 
-            if line.lower().startswith("shareholders' balance"):
+            if normalized_line.startswith("shareholders' balance"):
                 is_in_share_percentages = False
                 is_in_shareholders_balance = True
                 continue
@@ -181,9 +183,10 @@ class ShareholdersManager:
                     share_holder_strs[1].strip().replace("$", "").replace(",", "")
                 )
 
-            if line.lower().startswith("last updated at"):
+            if normalized_line.startswith("last updated at"):
+                time_value = normalized_line.removeprefix("last updated at:").strip()
                 self.last_updated_at = datetime.strptime(
-                    line.split(":")[1].strip(), "%Y-%m-%d %H:%M:%S"
+                    time_value, "%Y-%m-%d %H:%M:%S"
                 )
 
         self._is_loaded = True
