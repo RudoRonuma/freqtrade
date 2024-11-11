@@ -245,6 +245,7 @@ class ShareholdersManager:
         manager = ShareholdersManager(config=config)
         manager.total_assets = Decimal(data.get("total_assets", "0.0"))
         manager.total_platform_assets = Decimal(data.get("total_platform_assets", "0.0"))
+        manager.reserves = Decimal(data.get("reserves", "0.0"))
         manager.shareholders = [
             ShareholderInfo.from_dict(shareholder_data)
             for shareholder_data in data.get("shareholders", [])
