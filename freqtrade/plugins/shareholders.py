@@ -42,8 +42,8 @@ class ShareholderInfo:
     def from_dict(data: dict) -> "ShareholderInfo":
         return ShareholderInfo(
             name=data.get("name", ""),
-            balance=data.get("balance", 0.0),
-            percentage=data.get("percentage", 0.0),
+            balance=Decimal(data.get("balance", "0.0")),
+            percentage=Decimal(data.get("percentage", "0.0")),
         )
 
 
@@ -242,8 +242,8 @@ class ShareholdersManager:
             raise Exception("Data is empty.")
 
         manager = ShareholdersManager(config=config)
-        manager.total_assets = data.get("total_assets", Decimal("0.0"))
-        manager.total_platform_assets = data.get("total_platform_assets", Decimal("0.0"))
+        manager.total_assets = Decimal(data.get("total_assets", "0.0"))
+        manager.total_platform_assets = Decimal(data.get("total_platform_assets", "0.0"))
         manager.shareholders = [
             ShareholderInfo.from_dict(shareholder_data)
             for shareholder_data in data.get("shareholders", [])
