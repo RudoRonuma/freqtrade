@@ -50,7 +50,10 @@ def fmt_coin(value: float, coin: str, show_coin_name=True, keep_trailing_zeros=F
 
     return val
 
-def normalize_money(value: Decimal, currency_sign: str = '$') -> str:
+
+def normalize_money(
+    value: Decimal, decimal_points_limit: int = None, currency_sign: str = "$"
+) -> str:
     """
     Format a Decimal value with thousands separators.
 
@@ -61,17 +64,22 @@ def normalize_money(value: Decimal, currency_sign: str = '$') -> str:
         str: The formatted string representation.
     """
     # Split the number into integer and decimal parts
-    integer_part, decimal_part = str(value).split('.')
+    integer_part, decimal_part = str(value).split(".")
 
     # Add thousands separators to the integer part
     formatted_integer = f"{int(integer_part):,}"
 
     # if decimal_part only has 0, put 1 zero only
-    if decimal_part != '0' and int(decimal_part) == 0:
-        decimal_part = '0'
+    if decimal_part != "0" and int(decimal_part) == 0:
+        decimal_part = "0"
+
+    # decimal parts should only show 2 decimal places
+    if decimal_points_limit and len(decimal_part) > decimal_points_limit:
+        decimal_part = decimal_part[:decimal_points_limit]
 
     # Combine the formatted integer part with the decimal part
     return f"{formatted_integer}.{decimal_part}{currency_sign}"
+
 
 def str_to_decimal(money_str: str) -> Decimal:
     """
@@ -90,14 +98,13 @@ def str_to_decimal(money_str: str) -> Decimal:
         ValueError: If the input string cannot be parsed as a valid money amount.
     """
     # Remove currency symbol and whitespace
-    cleaned_str = money_str.replace('$', '').replace(', ', '').replace(' ', '')
+    cleaned_str = money_str.replace("$", "").replace(", ", "").replace(" ", "")
 
     # Remove commas, but only if they're used as thousand separators
-    if ',' in cleaned_str:
-        parts = cleaned_str.split('.')
+    if "," in cleaned_str:
+        parts = cleaned_str.split(".")
         if len(parts) == 1 or (len(parts) == 2 and len(parts[1]) <= 3):
-            cleaned_str = cleaned_str.replace(',', '')
-
+            cleaned_str = cleaned_str.replace(",", "")
 
     # Convert to Decimal
     return Decimal(cleaned_str)

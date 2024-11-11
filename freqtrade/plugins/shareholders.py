@@ -89,7 +89,7 @@ class ShareholdersManager:
             shareholder.balance += shareholder.percentage * amount
 
         self.total_assets += amount
-        self.total_platform_assets += amount
+        self.total_platform_assets += amount + reserve_amount
         self.save_to_file()
 
     # Allows the shareholder to withdraw their balance, updating their balance
@@ -189,9 +189,7 @@ class ShareholdersManager:
 
             if normalized_line.startswith("last updated at"):
                 time_value = normalized_line.removeprefix("last updated at:").strip()
-                self.last_updated_at = datetime.strptime(
-                    time_value, "%Y-%m-%d %H:%M:%S"
-                )
+                self.last_updated_at = datetime.strptime(time_value, "%Y-%m-%d %H:%M:%S")
 
         self._is_loaded = True
         return self
@@ -213,9 +211,10 @@ class ShareholdersManager:
 
     def to_markdown_str(self) -> str:
         result = "*Shareholders statistics:* (will get updated after each trade)\n\n"
-        result += f"*Total assets*: {normalize_money(self.total_assets)}\n"
-        result += f"*Total platform assets*: {normalize_money(self.total_platform_assets)}\n"
-        result += f"*Reserves*: {normalize_money(self.reserves)}\n\n"
+        result += f"*Total assets*: {normalize_money(self.total_assets, decimal_points_limit=2)}\n"
+        result += f"*Total platform assets*: {normalize_money(
+            self.total_platform_assets, decimal_points_limit=2)}\n"
+        result += f"*Reserves*: {normalize_money(self.reserves, decimal_points_limit=2)}\n\n"
         result += "------------------------------------\n\n"
         result += "*Share percentages*:\n"
         for shareholder in self.shareholders:
@@ -223,7 +222,8 @@ class ShareholdersManager:
         result += "------------------------------------\n\n"
         result += "*Shareholders' balance*:\n"
         for shareholder in self.shareholders:
-            result += f"*{shareholder.name}*: {normalize_money(shareholder.balance)}\n"
+            result += f"*{shareholder.name}*: {normalize_money(
+                shareholder.balance, decimal_points_limit=2)}\n"
         result += "------------------------------------\n\n"
         result += f"*Last updated at*: `{self.last_updated_at.strftime('%Y-%m-%d %H:%M:%S')}`\n"
         return result
