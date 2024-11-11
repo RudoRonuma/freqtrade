@@ -3,6 +3,7 @@ This module contains class to define a RPC communications
 """
 
 import logging
+import os
 from abc import abstractmethod
 from collections.abc import Generator, Sequence
 from datetime import date, datetime, timedelta, timezone
@@ -37,6 +38,7 @@ from freqtrade.loggers import bufferHandler
 from freqtrade.persistence import KeyStoreKeys, KeyValueStore, PairLocks, Trade
 from freqtrade.persistence.models import PairLock
 from freqtrade.plugins.pairlist.pairlist_helpers import expand_pairlist
+from freqtrade.plugins.shareholders import ShareholdersManager
 from freqtrade.rpc.fiat_convert import CryptoToFiatConverter
 from freqtrade.rpc.rpc_types import RPCSendMsg
 from freqtrade.util import decimals_per_coin, dt_now, dt_ts_def, format_date, shorten_date
@@ -98,6 +100,7 @@ class RPC:
 
     # Bind _fiat_converter if needed
     _fiat_converter: Optional[CryptoToFiatConverter] = None
+    _shareholders_manager: Optional[ShareholdersManager] = None
 
     def __init__(self, freqtrade) -> None:
         """
@@ -109,6 +112,13 @@ class RPC:
         self._config: Config = freqtrade.config
         if self._config.get("fiat_display_currency"):
             self._fiat_converter = CryptoToFiatConverter(self._config)
+
+        if self._config.get("shareholders", None):
+            shareholders_file = self._config["shareholders"].get("file_path", None)
+            if shareholders_file and os.path.exists(shareholders_file):
+                self._shareholders_manager = ShareholdersManager.from_json_file(shareholders_file, self._config)
+            else:
+                self._shareholders_manager = ShareholdersManager(self._config)
 
     @staticmethod
     def _rpc_show_config(

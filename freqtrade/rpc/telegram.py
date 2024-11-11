@@ -12,6 +12,7 @@ from collections.abc import Coroutine
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from functools import partial, wraps
 from html import escape
 from itertools import chain
@@ -33,7 +34,14 @@ from telegram import (
 )
 from telegram.constants import MessageLimit, ParseMode
 from telegram.error import BadRequest, NetworkError, TelegramError
-from telegram.ext import Application, CallbackContext, CallbackQueryHandler, CommandHandler
+from telegram.ext import (
+    Application,
+    CallbackContext,
+    CallbackQueryHandler,
+    CommandHandler,
+    MessageHandler,
+)
+from telegram.ext.filters import Regex as RegexFilter
 from telegram.helpers import escape_markdown
 
 from freqtrade.__init__ import __version__
@@ -44,7 +52,14 @@ from freqtrade.misc import chunks, plural
 from freqtrade.persistence import Trade
 from freqtrade.rpc import RPC, RPCException, RPCHandler
 from freqtrade.rpc.rpc_types import RPCEntryMsg, RPCExitMsg, RPCOrderMsg, RPCSendMsg
-from freqtrade.util import dt_from_ts, dt_humanize_delta, fmt_coin, format_date, round_value
+from freqtrade.util import (
+    dt_from_ts,
+    dt_humanize_delta,
+    fmt_coin,
+    format_date,
+    round_value,
+    str_to_decimal,
+)
 
 
 MAX_MESSAGE_LENGTH = MessageLimit.MAX_TEXT_LENGTH
@@ -119,6 +134,49 @@ def authorized_only(command_handler: Callable[..., Coroutine[Any, Any, None]]):
 
     return wrapper
 
+
+def shareholders_management_only(command_handler: Callable[..., Coroutine[Any, Any, None]]):
+    """
+    Decorator to check if the message comes from the correct shareholders
+    management chat_id
+    :param command_handler: Telegram CommandHandler
+    :return: decorated function
+    """
+
+    @wraps(command_handler)
+    async def wrapper(self, *args, **kwargs):
+        """Decorator logic"""
+        update = kwargs.get("update") or args[0]
+
+        # Reject unauthorized messages
+        if update.callback_query:
+            incoming_chat_id = int(update.callback_query.message.chat.id)
+        else:
+            incoming_chat_id = int(update.message.chat_id)
+
+        # get the shareholders from the config
+        shareholders = self._config.get("shareholders", None)
+        if not isinstance(shareholders, dict):
+            return
+
+        correct_chat_id = int(shareholders.get("channel", None))
+        if not correct_chat_id:
+            return
+
+        if incoming_chat_id != correct_chat_id:
+            logger.info(f"Rejected unauthorized message from: {update.message.chat_id}")
+            return wrapper
+
+        logger.debug(
+            "Executing handler: %s for chat_id: %s", command_handler.__name__, correct_chat_id)
+        try:
+            return await command_handler(self, *args, **kwargs)
+        except RPCException as e:
+            await self._send_msg(str(e))
+        except BaseException:
+            logger.exception("Exception occurred within Telegram module")
+
+    return wrapper
 
 class Telegram(RPCHandler):
     """This class handles all telegram communication"""
@@ -314,11 +372,20 @@ class Telegram(RPCHandler):
             CallbackQueryHandler(self._force_exit_inline, pattern=r"force_exit__\S+"),
             CallbackQueryHandler(self._force_enter_inline, pattern=r"force_enter__\S+"),
         ]
+        message_handlers = [
+            MessageHandler(RegexFilter(r"(?i)^\s*#\s*trade.*$"), self._trade_message_handler),
+            MessageHandler(RegexFilter(r"(?i)^\s*#\s*deposit.*$"), self._deposit_message_handler),
+            MessageHandler(RegexFilter(r"(?i)^\s*#\s*withdraw.*$"), self._withdraw_message_handler),
+        ]
+
         for handle in handles:
             self._app.add_handler(handle)
 
         for callback in callbacks:
             self._app.add_handler(callback)
+
+        for message_handler in message_handlers:
+            self._app.add_handler(message_handler)
 
         logger.info(
             "rpc.telegram is listening for following commands: %s",
@@ -1266,7 +1333,7 @@ class Telegram(RPCHandler):
         """
         # get the shareholders from the config
         shareholders = self._config.get("shareholders", None)
-        if not shareholders:
+        if not isinstance(shareholders, dict):
             await self._send_msg("Shareholders not configured.")
             return
 
@@ -1281,7 +1348,176 @@ class Telegram(RPCHandler):
             message_id=index_msg_id,
             chat_id=update.effective_chat.id,
         )
-        print(result)
+        s_manager = self._rpc._shareholders_manager
+        if s_manager and not s_manager._is_loaded:
+            s_manager.parse_shareholders(result.text)
+            try:
+                s_manager.save_to_file()
+            except Exception as ex:
+                logger.error(f"Error saving shareholders to file: {ex}")
+
+    @shareholders_management_only
+    async def _trade_message_handler(self, update: Update, context: CallbackContext) -> None:
+        """
+        Handles the message with #Trade
+        """
+        the_text = update.message.text or update.message.caption
+        all_lines = the_text.replace("\r", "").split("\n")
+
+        total_trade_profit = Decimal('0.0')
+        for current_line in all_lines:
+            normalized_line = current_line.lower().strip()
+            # first line is always #Trade
+            # in future, we can have extra information in the first line
+
+            # look for lines that have profit at the start
+            if normalized_line.startswith("profit"):
+                total_trade_profit += str_to_decimal(normalized_line.split(":")[1])
+
+        s_manager = self._rpc._shareholders_manager
+        if not s_manager:
+            return
+        s_manager.add_total_profit(total_trade_profit)
+
+        shareholders = self._config.get("shareholders", None)
+        if not isinstance(shareholders, dict):
+            logger.error("Shareholders are not configured.")
+            return
+
+        chat_id = shareholders.get("channel", None)
+        index_msg_id = shareholders.get("index_msg_id", None)
+        if not chat_id or not index_msg_id:
+            logger.error("Shareholders are not configured properly.")
+            return
+
+        new_index_message_text = s_manager.to_markdown_str()
+        try:
+            await self.tg_bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=index_msg_id,
+                text=new_index_message_text,
+                parse_mode=ParseMode.MARKDOWN,
+            )
+        except Exception as ex:
+            logger.error(f"Error editing shareholders message: {ex}")
+
+        # if everything was fine, react thumbs up
+        await update.effective_message.set_reaction("👍")
+
+    @shareholders_management_only
+    async def _deposit_message_handler(self, update: Update, context: CallbackContext) -> None:
+        """
+        Handles the message with #Deposit
+        """
+        the_text = update.message.text or update.message.caption
+        s_manager = self._rpc._shareholders_manager
+        if not the_text or not s_manager:
+            return
+
+        all_lines = the_text.replace("\r", "").split("\n")
+        output = ""
+
+        for current_line in all_lines:
+            normalized_line = current_line.lower().strip()
+            # first line is always #Trade
+            # in future, we can have extra information in the first line
+            my_strs = normalized_line.split(":")
+            shareholder_name = my_strs[0]
+            amount = str_to_decimal(my_strs[1])
+            if not s_manager.get_share_holder_by_name(shareholder_name):
+                output += f"Shareholder {shareholder_name} not found.\n"
+                continue
+
+            s_manager.deposit_balance(shareholder_name, amount)
+            output += f"Deposited {amount} to {shareholder_name}.\n"
+
+
+        shareholders = self._config.get("shareholders", None)
+        if not isinstance(shareholders, dict):
+            logger.error("Shareholders are not configured.")
+            return
+
+        chat_id = shareholders.get("channel", None)
+        index_msg_id = shareholders.get("index_msg_id", None)
+        if not chat_id or not index_msg_id:
+            logger.error("Shareholders are not configured properly.")
+            return
+
+        new_index_message_text = s_manager.to_markdown_str()
+        try:
+            await self.tg_bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=index_msg_id,
+                text=new_index_message_text,
+                parse_mode=ParseMode.MARKDOWN,
+            )
+        except Exception as ex:
+            logger.error(f"Error editing shareholders message: {ex}")
+            return
+
+        if output:
+            await self._send_msg(output)
+
+        # if everything was fine, react thumbs up
+        await update.effective_message.set_reaction("👍")
+
+    @shareholders_management_only
+    async def _withdraw_message_handler(self, update: Update, context: CallbackContext) -> None:
+        """
+        Handles the message with #Withdraw
+        """
+        the_text = update.message.text or update.message.caption
+        s_manager = self._rpc._shareholders_manager
+        if not the_text or not s_manager:
+            return
+
+        all_lines = the_text.replace("\r", "").split("\n")
+        output = ""
+
+        for current_line in all_lines:
+            normalized_line = current_line.lower().strip()
+            # first line is always #Trade
+            # in future, we can have extra information in the first line
+            my_strs = normalized_line.split(":")
+            shareholder_name = my_strs[0]
+            amount = str_to_decimal(my_strs[1])
+            if not s_manager.get_share_holder_by_name(shareholder_name):
+                output += f"Shareholder {shareholder_name} not found.\n"
+                continue
+
+            s_manager.withdraw_balance(shareholder_name, amount)
+            output += f"Withdrew {amount} from {shareholder_name}.\n"
+
+
+        shareholders = self._config.get("shareholders", None)
+        if not isinstance(shareholders, dict):
+            logger.error("Shareholders are not configured.")
+            return
+
+        chat_id = shareholders.get("channel", None)
+        index_msg_id = shareholders.get("index_msg_id", None)
+        if not chat_id or not index_msg_id:
+            logger.error("Shareholders are not configured properly.")
+            return
+
+        new_index_message_text = s_manager.to_markdown_str()
+        try:
+            await self.tg_bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=index_msg_id,
+                text=new_index_message_text,
+                parse_mode=ParseMode.MARKDOWN,
+            )
+        except Exception as ex:
+            logger.error(f"Error editing shareholders message: {ex}")
+            return
+
+        if output:
+            await self._send_msg(output)
+
+        # if everything was fine, react thumbs up
+        await update.effective_message.set_reaction("👍")
+
 
     @authorized_only
     async def _start(self, update: Update, context: CallbackContext) -> None:

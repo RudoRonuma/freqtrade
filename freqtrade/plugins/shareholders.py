@@ -3,7 +3,15 @@ Shareholders plugin for freqtrade bot.
 This plugin calculates shareholders statistics.
 """
 
+import json
 from datetime import datetime
+from decimal import Decimal
+from pathlib import Path
+
+from freqtrade.constants import Config
+
+
+DEFAULT_SHAREHOLDERS_FILE = "shareholders.json"
 
 
 class ShareholderInfo:
@@ -11,22 +19,36 @@ class ShareholderInfo:
     name: str = ""
 
     # Balance of the shareholder
-    balance: float = 0.0
+    balance: Decimal = Decimal("0.0")
 
     # Percentage of the shareholder of the total assets.
     # Between 0 and 1
-    percentage: float = 0.0
+    percentage: Decimal = Decimal("0.0")
 
-
-    def __init__(self, name: str, balance: float = 0.0, percentage: float = 0.0) -> None:
+    def __init__(self, name: str, balance: Decimal = None, percentage: Decimal = None) -> None:
         self.name = name
-        self.balance = balance
-        self.percentage = percentage
+        self.balance = balance or Decimal("0.0")
+        self.percentage = percentage or Decimal("0.0")
+
+    def to_dict(self) -> dict:
+        return {"name": self.name, "balance": self.balance, "percentage": self.percentage}
+
+    @staticmethod
+    def from_dict(data: dict) -> "ShareholderInfo":
+        return ShareholderInfo(
+            name=data.get("name", ""),
+            balance=data.get("balance", 0.0),
+            percentage=data.get("percentage", 0.0),
+        )
 
 
 class ShareholdersManager:
-    # total available assets
-    total_assets: float = 0
+    # total available assets for shareholders.
+    total_assets: Decimal = Decimal("0.0")
+
+    total_platform_assets: Decimal = Decimal("0.0")
+
+    reserves: Decimal = Decimal("0.0")
 
     shareholders: list[ShareholderInfo] = []
 
@@ -34,46 +56,62 @@ class ShareholdersManager:
 
     _header_comment: str = ""
 
+    _config: Config = None
+
+    _is_loaded: bool = False
+
+    _reserve_percentage: Decimal = Decimal("0.05")
+
+    def __init__(self, config: Config = None) -> None:
+        self._config = config or Config()
+
+        self._reserve_percentage = Decimal(self._config.get("reserve_percentage", "0.05"))
+
+    def get_share_holder_by_name(self, name: str) -> ShareholderInfo:
+        for shareholder in self.shareholders:
+            if shareholder.name == name:
+                return shareholder
+
+        return None
+
     # Distributes the profit to the shareholders based on their percentage.
-    def add_total_profit(self, amount: float) -> None:
+    def add_total_profit(self, amount: Decimal) -> None:
+        reserve_amount = amount * self._reserve_percentage
+        self.reserves += reserve_amount
+        amount -= reserve_amount
+
         for shareholder in self.shareholders:
             shareholder.balance += shareholder.percentage * amount
 
         self.total_assets += amount
+        self.total_platform_assets += amount
+        self.save_to_file()
 
     # Allows the shareholder to withdraw their balance, updating their balance
     # and shareholding percentage.
-    def withdraw_balance(self, shareholder_name: str, amount: float) -> None:
-        target_shareholder: ShareholderInfo = None
-        for shareholder in self.shareholders:
-            if shareholder.name != shareholder_name:
-                continue
-
-            target_shareholder = shareholder
-            break
-
+    def withdraw_balance(self, shareholder_name: str, amount: Decimal) -> None:
+        target_shareholder = self.get_share_holder_by_name(shareholder_name)
         if not target_shareholder:
             raise Exception(f"Shareholder {shareholder_name} not found.")
 
         target_shareholder.balance -= amount
         self.total_assets -= amount
+        self.total_platform_assets -= amount
         self._update_shareholders_percentage()
+        self.save_to_file()
 
-    def deposit_balance(self, shareholder_name: str, amount: float) -> None:
-        target_shareholder: ShareholderInfo = None
-        for shareholder in self.shareholders:
-            if shareholder.name != shareholder_name:
-                continue
-
-            target_shareholder = shareholder
-            break
-
+    # Allows the shareholder to deposit money into their balance, updating their balance
+    # and shareholding percentage.
+    def deposit_balance(self, shareholder_name: str, amount: Decimal) -> None:
+        target_shareholder = self.get_share_holder_by_name(shareholder_name)
         if not target_shareholder:
             raise Exception(f"Shareholder {shareholder_name} not found.")
 
         target_shareholder.balance += amount
         self.total_assets += amount
+        self.total_platform_assets += amount
         self._update_shareholders_percentage()
+        self.save_to_file()
 
     # Goes through the shareholders and updates their percentages based on their
     # current balance and the total assets.
@@ -81,12 +119,13 @@ class ShareholdersManager:
         for shareholder in self.shareholders:
             shareholder.percentage = shareholder.balance / self.total_assets
 
-    @staticmethod
-    def parse_shareholders(text: str) -> 'ShareholdersManager':
+    def parse_shareholders(self, text: str) -> "ShareholdersManager":
         lines = text.split("\n")
 
-        manager = ShareholdersManager()
-        manager._header_comment = lines[0]
+        self.shareholders = []
+        self.total_assets = Decimal("0.0")
+        self.total_platform_assets = Decimal("0.0")
+        self._header_comment = lines[0]
         loaded_shareholders = {}
 
         is_in_share_percentages = False
@@ -103,7 +142,11 @@ class ShareholdersManager:
                 continue
 
             if line.lower().startswith("total assets"):
-                manager.total_assets = float(line.split(":")[1])
+                self.total_assets = Decimal(line.split(":")[1])
+                continue
+
+            if line.lower().startswith("Total platform assets"):
+                self.total_assets = Decimal(line.split(":")[1])
                 continue
 
             if line.lower().startswith("share percentages"):
@@ -115,11 +158,11 @@ class ShareholdersManager:
                 share_holder_strs = line.split(":")
                 current_shareholder = ShareholderInfo(
                     name=share_holder_strs[0].strip(),
-                    balance=0.0, # will be calculated later
-                    percentage=float(share_holder_strs[1].strip())
+                    balance=Decimal("0.0"),  # will be calculated later
+                    percentage=Decimal(share_holder_strs[1].strip()),
                 )
                 loaded_shareholders[current_shareholder.name] = current_shareholder
-                manager.shareholders.append(current_shareholder)
+                self.shareholders.append(current_shareholder)
 
             if line.lower().startswith("shareholders' balance"):
                 is_in_share_percentages = False
@@ -133,14 +176,17 @@ class ShareholdersManager:
                 if not isinstance(current_shareholder, ShareholderInfo):
                     raise Exception(f"Shareholder {the_name} not found.")
 
-                current_shareholder.balance = float(
-                    share_holder_strs[1].strip().replace("$", "").replace(",", ""))
+                current_shareholder.balance = Decimal(
+                    share_holder_strs[1].strip().replace("$", "").replace(",", "")
+                )
 
             if line.lower().startswith("last updated at"):
-                manager.last_updated_at = datetime.strptime(
-                    line.split(":")[1].strip(), "%Y-%m-%d %H:%M:%S")
+                self.last_updated_at = datetime.strptime(
+                    line.split(":")[1].strip(), "%Y-%m-%d %H:%M:%S"
+                )
 
-        return manager
+        self._is_loaded = True
+        return self
 
     def __str__(self) -> str:
         result = self._header_comment + "\n"
@@ -158,7 +204,8 @@ class ShareholdersManager:
 
     def to_markdown_str(self) -> str:
         result = f"*{self._header_comment}*\n"
-        result += f"*Total assets*: ${self.total_assets}\n\n"
+        result += f"*Total assets*: ${self.total_assets}$\n"
+        result += f"*Total platform assets*: ${self.total_platform_assets}$\n\n"
         result += "*Share percentages*:\n"
         for shareholder in self.shareholders:
             result += f"*{shareholder.name}*: {shareholder.percentage}\n"
@@ -169,3 +216,44 @@ class ShareholdersManager:
         result += "------------------------------------\n"
         result += f"*Last updated at*: `{self.last_updated_at.strftime('%Y-%m-%d %H:%M:%S')}`\n"
         return result
+
+    def to_dict(self) -> dict:
+        return {
+            "total_assets": self.total_assets,
+            "total_platform_assets": self.total_platform_assets,
+            "reserves": self.reserves,
+            "shareholders": [shareholder.to_dict() for shareholder in self.shareholders],
+            "last_updated_at": self.last_updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+
+    @staticmethod
+    def from_dict(data: dict, config: Config = None) -> "ShareholdersManager":
+        if not data:
+            raise Exception("Data is empty.")
+
+        manager = ShareholdersManager(config=config)
+        manager.total_assets = data.get("total_assets", Decimal("0.0"))
+        manager.shareholders = [
+            ShareholderInfo.from_dict(shareholder_data)
+            for shareholder_data in data.get("shareholders", [])
+        ]
+        manager.last_updated_at = datetime.strptime(
+            data.get("last_updated_at", ""), "%Y-%m-%d %H:%M:%S"
+        )
+
+        manager._is_loaded = True
+        return manager
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict(), indent=4)
+
+    def save_to_file(self, file_path: str = None) -> None:
+        file_path = file_path or self._config["shareholders"].get(
+            "file_path", DEFAULT_SHAREHOLDERS_FILE)
+        with Path(file_path).open("w") as file:
+            file.write(self.to_json())
+
+    @staticmethod
+    def from_json_file(file_path: str, config: Config = None) -> "ShareholdersManager":
+        with Path(file_path).open("r") as file:
+            return ShareholdersManager.from_dict(json.load(file), config)
