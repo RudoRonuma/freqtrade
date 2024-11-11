@@ -81,6 +81,7 @@ class ShareholdersManager:
 
     # Distributes the profit to the shareholders based on their percentage.
     def add_total_profit(self, amount: Decimal) -> None:
+        self.total_platform_assets += amount
         reserve_amount = amount * self._reserve_percentage
         self.reserves += reserve_amount
         amount -= reserve_amount
@@ -89,7 +90,6 @@ class ShareholdersManager:
             shareholder.balance += shareholder.percentage * amount
 
         self.total_assets += amount
-        self.total_platform_assets += amount + reserve_amount
         self.save_to_file()
 
     # Allows the shareholder to withdraw their balance, updating their balance
