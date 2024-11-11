@@ -1422,12 +1422,13 @@ class Telegram(RPCHandler):
             normalized_line = current_line.lower().strip()
             # first line is always #Trade
             # in future, we can have extra information in the first line
-            my_strs = normalized_line.split(":")
-            shareholder_name = my_strs[0]
-            amount = str_to_decimal(my_strs[1])
-            if not s_manager.get_share_holder_by_name(shareholder_name):
-                output += f"Shareholder {shareholder_name} not found.\n"
-                continue
+            if normalized_line.find(":") != -1:
+                my_strs = normalized_line.split(":")
+                shareholder_name = my_strs[0]
+                amount = str_to_decimal(my_strs[1])
+                if not s_manager.get_share_holder_by_name(shareholder_name):
+                    output += f"Shareholder {shareholder_name} not found.\n"
+                    continue
 
             s_manager.deposit_balance(shareholder_name, amount)
             output += f"Deposited {amount} to {shareholder_name}.\n"
@@ -1479,12 +1480,13 @@ class Telegram(RPCHandler):
             normalized_line = current_line.lower().strip()
             # first line is always #Trade
             # in future, we can have extra information in the first line
-            my_strs = normalized_line.split(":")
-            shareholder_name = my_strs[0]
-            amount = str_to_decimal(my_strs[1])
-            if not s_manager.get_share_holder_by_name(shareholder_name):
-                output += f"Shareholder {shareholder_name} not found.\n"
-                continue
+            if normalized_line.find(":") != -1:
+                my_strs = normalized_line.split(":")
+                shareholder_name = my_strs[0]
+                amount = str_to_decimal(my_strs[1])
+                if not s_manager.get_share_holder_by_name(shareholder_name):
+                    output += f"Shareholder {shareholder_name} not found.\n"
+                    continue
 
             s_manager.withdraw_balance(shareholder_name, amount)
             output += f"Withdrew {amount} from {shareholder_name}.\n"
