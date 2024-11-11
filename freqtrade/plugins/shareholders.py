@@ -212,9 +212,10 @@ class ShareholdersManager:
         return result
 
     def to_markdown_str(self) -> str:
-        result = f"*{self._header_comment}*\n\n"
+        result = "*Shareholders statistics:* (will get updated after each trade)\n\n"
         result += f"*Total assets*: {normalize_money(self.total_assets)}\n"
-        result += f"*Total platform assets*: {normalize_money(self.total_platform_assets)}\n\n"
+        result += f"*Total platform assets*: {normalize_money(self.total_platform_assets)}\n"
+        result += f"*Reserves*: {normalize_money(self.reserves)}\n\n"
         result += "------------------------------------\n\n"
         result += "*Share percentages*:\n"
         for shareholder in self.shareholders:
