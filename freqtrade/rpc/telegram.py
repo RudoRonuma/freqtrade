@@ -1430,8 +1430,8 @@ class Telegram(RPCHandler):
                     output += f"Shareholder {shareholder_name} not found.\n"
                     continue
 
-            s_manager.deposit_balance(shareholder_name, amount)
-            output += f"Deposited {amount} to {shareholder_name}.\n"
+                s_manager.deposit_balance(shareholder_name, amount)
+                output += f"Deposited {amount} to {shareholder_name}.\n"
 
 
         shareholders = self._config.get("shareholders", None)
@@ -1488,8 +1488,8 @@ class Telegram(RPCHandler):
                     output += f"Shareholder {shareholder_name} not found.\n"
                     continue
 
-            s_manager.withdraw_balance(shareholder_name, amount)
-            output += f"Withdrew {amount} from {shareholder_name}.\n"
+                s_manager.withdraw_balance(shareholder_name, amount)
+                output += f"Withdrew {amount} from {shareholder_name}.\n"
 
 
         shareholders = self._config.get("shareholders", None)
