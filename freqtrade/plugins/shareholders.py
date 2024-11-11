@@ -263,6 +263,8 @@ class ShareholdersManager:
         file_path = file_path or self._config["shareholders"].get(
             "file_path", DEFAULT_SHAREHOLDERS_FILE
         )
+
+        self.last_updated_at = datetime.now()
         with Path(file_path).open("w") as file:
             file.write(self.to_json())
 
