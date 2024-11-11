@@ -212,8 +212,8 @@ class ShareholdersManager:
     def to_markdown_str(self) -> str:
         result = "*Shareholders statistics:* (will get updated after each trade)\n\n"
         result += f"*Total assets*: {normalize_money(self.total_assets, decimal_points_limit=2)}\n"
-        result += f"*Total platform assets*: {normalize_money(
-            self.total_platform_assets, decimal_points_limit=2)}\n"
+        result += "*Total platform assets*: " + \
+            f"{normalize_money(self.total_platform_assets, decimal_points_limit=2)}\n"
         result += f"*Reserves*: {normalize_money(self.reserves, decimal_points_limit=2)}\n\n"
         result += "------------------------------------\n\n"
         result += "*Share percentages*:\n"
