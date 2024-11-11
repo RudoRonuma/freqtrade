@@ -222,8 +222,8 @@ class ShareholdersManager:
         result += "------------------------------------\n\n"
         result += "*Shareholders' balance*:\n"
         for shareholder in self.shareholders:
-            result += f"*{shareholder.name}*: {normalize_money(
-                shareholder.balance, decimal_points_limit=2)}\n"
+            result += f"*{shareholder.name}*: " + \
+                f"{normalize_money(shareholder.balance, decimal_points_limit=2)}\n"
         result += "------------------------------------\n\n"
         result += f"*Last updated at*: `{self.last_updated_at.strftime('%Y-%m-%d %H:%M:%S')}`\n"
         return result
