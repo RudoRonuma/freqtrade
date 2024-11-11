@@ -152,7 +152,7 @@ class ShareholdersManager:
                 self.total_assets = str_to_decimal(line.split(":")[1])
                 continue
 
-            if normalized_line.startswith("Total platform assets"):
+            if normalized_line.startswith("total platform assets"):
                 self.total_platform_assets = str_to_decimal(line.split(":")[1])
                 continue
 
