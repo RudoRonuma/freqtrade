@@ -218,7 +218,7 @@ class ShareholdersManager:
         result += "------------------------------------\n\n"
         result += "*Share percentages*:\n"
         for shareholder in self.shareholders:
-            result += f"*{shareholder.name}*: {shareholder.percentage}\n"
+            result += f"*{shareholder.name}*: {shareholder.percentage.quantize(Decimal('0.01'))}\n"
         result += "------------------------------------\n\n"
         result += "*Shareholders' balance*:\n"
         for shareholder in self.shareholders:
