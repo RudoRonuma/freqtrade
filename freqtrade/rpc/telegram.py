@@ -114,7 +114,7 @@ def authorized_only(command_handler: Callable[..., Coroutine[Any, Any, None]]):
         if update.callback_query:
             cchat_id = int(update.callback_query.message.chat.id)
         else:
-            cchat_id = int(update.message.chat_id)
+            cchat_id = int(update.effective_message.chat_id)
 
         chat_id = int(self._config["telegram"]["chat_id"])
         if cchat_id != chat_id:
@@ -152,7 +152,7 @@ def shareholders_management_only(command_handler: Callable[..., Coroutine[Any, A
         if update.callback_query:
             incoming_chat_id = int(update.callback_query.message.chat.id)
         else:
-            incoming_chat_id = int(update.message.chat_id)
+            incoming_chat_id = int(update.effective_message.chat_id)
 
         # get the shareholders from the config
         shareholders = self._config.get("shareholders", None)
@@ -1361,7 +1361,7 @@ class Telegram(RPCHandler):
         """
         Handles the message with #Trade
         """
-        the_text = update.message.text or update.message.caption
+        the_text = update.effective_message.text or update.effective_message.caption
         all_lines = the_text.replace("\r", "").split("\n")
 
         total_trade_profit = Decimal('0.0')
@@ -1410,7 +1410,7 @@ class Telegram(RPCHandler):
         """
         Handles the message with #Deposit
         """
-        the_text = update.message.text or update.message.caption
+        the_text = update.effective_message.text or update.effective_message.caption
         s_manager = self._rpc._shareholders_manager
         if not the_text or not s_manager:
             return
@@ -1467,7 +1467,7 @@ class Telegram(RPCHandler):
         """
         Handles the message with #Withdraw
         """
-        the_text = update.message.text or update.message.caption
+        the_text = update.effective_message.text or update.effective_message.caption
         s_manager = self._rpc._shareholders_manager
         if not the_text or not s_manager:
             return
