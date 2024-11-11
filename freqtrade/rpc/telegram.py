@@ -21,6 +21,9 @@ from typing import Any, Callable, Literal, Optional, Union
 
 from tabulate import tabulate
 from telegram import (
+    Bot as TgBot,
+)
+from telegram import (
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -119,6 +122,10 @@ def authorized_only(command_handler: Callable[..., Coroutine[Any, Any, None]]):
 
 class Telegram(RPCHandler):
     """This class handles all telegram communication"""
+
+    @property
+    def tg_bot(self) -> 'TgBot':
+        return self._app.bot
 
     def __init__(self, rpc: RPC, config: Config) -> None:
         """
@@ -246,6 +253,7 @@ class Telegram(RPCHandler):
             CommandHandler("profit", self._profit),
             CommandHandler("balance", self._balance),
             CommandHandler("positions", self._positions),
+            CommandHandler("shareholders", self._shareholders),
             CommandHandler("start", self._start),
             CommandHandler("stop", self._stop),
             CommandHandler(["forcesell", "forceexit", "fx"], self._force_exit),
@@ -1246,6 +1254,34 @@ class Telegram(RPCHandler):
         await self._send_msg(
             output, reload_able=True, callback_path="update_positions", query=update.callback_query
         )
+
+    @authorized_only
+    async def _shareholders(self, update: Update, context: CallbackContext) -> None:
+        """
+        Handler for /shareholders
+        Shows statistics about shareholders.
+        :param bot: telegram bot
+        :param update: message update
+        :return: None
+        """
+        # get the shareholders from the config
+        shareholders = self._config.get("shareholders", None)
+        if not shareholders:
+            await self._send_msg("Shareholders not configured.")
+            return
+
+        chat_id = shareholders.get("channel", None)
+        index_msg_id = shareholders.get("index_msg_id", None)
+        if not chat_id or not index_msg_id:
+            await self._send_msg("Shareholders not configured properly.")
+            return
+
+        result = await self.tg_bot.forward_message(
+            from_chat_id=chat_id,
+            message_id=index_msg_id,
+            chat_id=update.effective_chat.id,
+        )
+        print(result)
 
     @authorized_only
     async def _start(self, update: Update, context: CallbackContext) -> None:
