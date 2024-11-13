@@ -1295,11 +1295,14 @@ class Telegram(RPCHandler):
         output += f"*Total Profit:* {total_profit}\n"
 
         for current_position in results:
+            if not isinstance(current_position, dict):
+                continue
+
             curr_output = "\n"
             info: dict = current_position['info']
-            profit = current_position["unrealizedPnl"]
+            profit = int(current_position.get('unrealizedPnl', 0))
             if not profit and info.get('unrealizedProfit', None):
-                profit = info['unrealizedProfit']
+                profit = int(info['unrealizedProfit'])
 
             curr_output += "+" if profit > 0 else "-"
             curr_output += f" *{current_position['symbol']}* {current_position['positionSide']}"
