@@ -29,4 +29,4 @@ def get_profit(data: dict, default_value="0.0") -> Decimal:
     if not profit:
         return Decimal(default_value)
 
-    return profit
+    return profit.quantize(Decimal('0.01'))
