@@ -146,13 +146,17 @@ def shareholders_management_only(command_handler: Callable[..., Coroutine[Any, A
     @wraps(command_handler)
     async def wrapper(self, *args, **kwargs):
         """Decorator logic"""
-        update = kwargs.get("update") or args[0]
+        update: Update = kwargs.get("update") or args[0]
 
         # Reject unauthorized messages
         if update.callback_query:
             incoming_chat_id = int(update.callback_query.message.chat.id)
         else:
             incoming_chat_id = int(update.effective_message.chat_id)
+
+        # ignore edits
+        if update.edited_message or update.effective_message.edit_date:
+            return
 
         # get the shareholders from the config
         shareholders = self._config.get("shareholders", None)
