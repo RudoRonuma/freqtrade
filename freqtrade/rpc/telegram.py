@@ -57,6 +57,7 @@ from freqtrade.util import (
     dt_humanize_delta,
     fmt_coin,
     format_date,
+    get_profit,
     round_value,
     str_to_decimal,
 )
@@ -172,7 +173,8 @@ def shareholders_management_only(command_handler: Callable[..., Coroutine[Any, A
             return wrapper
 
         logger.debug(
-            "Executing handler: %s for chat_id: %s", command_handler.__name__, correct_chat_id)
+            "Executing handler: %s for chat_id: %s", command_handler.__name__, correct_chat_id
+        )
         try:
             return await command_handler(self, *args, **kwargs)
         except RPCException as e:
@@ -182,11 +184,12 @@ def shareholders_management_only(command_handler: Callable[..., Coroutine[Any, A
 
     return wrapper
 
+
 class Telegram(RPCHandler):
     """This class handles all telegram communication"""
 
     @property
-    def tg_bot(self) -> 'TgBot':
+    def tg_bot(self) -> "TgBot":
         return self._app.bot
 
     def __init__(self, rpc: RPC, config: Config) -> None:
@@ -1279,9 +1282,7 @@ class Telegram(RPCHandler):
                 amount = float(total_std[current_currency] or 0)
                 if not amount or amount < 0.0001:
                     continue
-                output += (
-                    f" *• {current_currency}*: {total_std[current_currency]}\n"
-                )
+                output += f" *• {current_currency}*: {total_std[current_currency]}\n"
         await self._send_msg(
             output, reload_able=True, callback_path="update_balance", query=update.callback_query
         )
@@ -1295,7 +1296,7 @@ class Telegram(RPCHandler):
 
         output = f"*Positions count:* {len(results)}\n"
 
-        total_profit = sum([p["unrealizedPnl"] for p in results])
+        total_profit = sum([get_profit(p) for p in results])
         output += f"*Total Profit:* {total_profit}\n"
 
         for current_position in results:
@@ -1303,19 +1304,15 @@ class Telegram(RPCHandler):
                 continue
 
             curr_output = "\n"
-            info: dict = current_position['info']
-            profit = int(current_position.get('unrealizedPnl', 0))
-            if not profit and info.get('unrealizedProfit', None):
-                profit = int(info['unrealizedProfit'])
-
+            profit = get_profit(current_position)
             curr_output += "+" if profit > 0 else "-"
             curr_output += f" *{current_position['symbol']}* {current_position['positionSide']}"
             curr_output += f" {current_position['leverage']}X\n"
             curr_output += f" *• Enter Price:* {current_position['entryPrice']}\n"
             curr_output += f" *• Last Price:* {current_position['lastPrice']}\n"
-            curr_output += f" *• Profit:* {info['unrealizedProfit']}\n"
+            curr_output += f" *• Profit:* {profit}\n"
 
-            if current_position['takeProfitPrice'] or current_position['stopLossPrice']:
+            if current_position["takeProfitPrice"] or current_position["stopLossPrice"]:
                 curr_output += f" *• TP:* {current_position['takeProfitPrice']} /"
                 curr_output += f" *SL:* {current_position['stopLossPrice']}"
 
@@ -1371,7 +1368,7 @@ class Telegram(RPCHandler):
         the_text = update.effective_message.text or update.effective_message.caption
         all_lines = the_text.replace("\r", "").split("\n")
 
-        total_trade_profit = Decimal('0.0')
+        total_trade_profit = Decimal("0.0")
         for current_line in all_lines:
             normalized_line = current_line.lower().strip()
             # first line is always #Trade
@@ -1440,7 +1437,6 @@ class Telegram(RPCHandler):
                 s_manager.deposit_balance(shareholder_name, amount)
                 output += f"Deposited {amount} to {shareholder_name}.\n"
 
-
         shareholders = self._config.get("shareholders", None)
         if not isinstance(shareholders, dict):
             logger.error("Shareholders are not configured.")
@@ -1498,7 +1494,6 @@ class Telegram(RPCHandler):
                 s_manager.withdraw_balance(shareholder_name, amount)
                 output += f"Withdrew {amount} from {shareholder_name}.\n"
 
-
         shareholders = self._config.get("shareholders", None)
         if not isinstance(shareholders, dict):
             logger.error("Shareholders are not configured.")
@@ -1527,7 +1522,6 @@ class Telegram(RPCHandler):
 
         # if everything was fine, react thumbs up
         await update.effective_message.set_reaction("👍")
-
 
     @authorized_only
     async def _start(self, update: Update, context: CallbackContext) -> None:

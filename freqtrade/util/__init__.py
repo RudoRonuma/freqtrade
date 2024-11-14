@@ -18,7 +18,7 @@ from freqtrade.util.formatters import (
     round_value,
     str_to_decimal,
 )
-from freqtrade.util.ft_precise import FtPrecise
+from freqtrade.util.ft_precise import FtPrecise, get_profit
 from freqtrade.util.measure_time import MeasureTime
 from freqtrade.util.periodic_cache import PeriodicCache
 from freqtrade.util.progress_tracker import get_progress_tracker  # noqa F401
@@ -39,6 +39,7 @@ __all__ = [
     "format_date",
     "format_ms_time",
     "FtPrecise",
+    "get_profit",
     "PeriodicCache",
     "shorten_date",
     "decimals_per_coin",
