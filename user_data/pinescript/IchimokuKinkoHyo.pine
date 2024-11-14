@@ -1,0 +1,40 @@
+//@version=5
+
+strategy("Heiken Ashi + Ichimoku Kinko Hyo Strategy", shorttitle="HaI", overlay=true, default_qty_type=strategy.percent_of_equity, max_bars_back=1000, default_qty_value=100, calc_on_order_fills= true, calc_on_every_tick=true, pyramiding=0)
+
+hahigh = request.security(ticker.heikinashi(syminfo.tickerid), timeframe.period, high)
+halow = request.security(ticker.heikinashi(syminfo.tickerid), timeframe.period, low)
+
+TenkanSenPeriods = input.int(9, minval=1, title="Tenkan Sen Periods")
+KijunSenPeriods = input.int(24, minval=1, title="Kijun Sen Periods")
+SenkouSpanBPeriods = input.int(51, minval=1, title="Senkou Span B Periods")
+displacement = input.int(24, minval=1, title="Displacement")
+donchian(len) => math.avg(ta.lowest(len), ta.highest(len))
+TenkanSen = donchian(TenkanSenPeriods)
+KijunSen = donchian(KijunSenPeriods)
+SenkouSpanA = math.avg(TenkanSen, KijunSen)
+SenkouSpanB = donchian(SenkouSpanBPeriods)
+SenkouSpanH = math.max(SenkouSpanA[displacement - 1], SenkouSpanB[displacement - 1])
+SenkouSpanL = math.min(SenkouSpanA[displacement - 1], SenkouSpanB[displacement - 1])
+ChikouSpan = close[displacement-1]
+
+plot(TenkanSen, color=color.blue, title="Tenkan Sen", linewidth = 2)
+plot(KijunSen, color=color.maroon, title="Kijun Sen", linewidth = 3)
+plot(close, offset = -displacement, color=color.orange, title="Chikou Span", linewidth = 2)
+sa=plot (SenkouSpanA, offset = displacement, color=color.green, title="Senkou Span A", linewidth = 2)
+sb=plot (SenkouSpanB, offset = displacement, color=color.red, title="Senkou Span B", linewidth = 3)
+fill(sa, sb, color = SenkouSpanA > SenkouSpanB ? color.green : color.red)
+
+longCondition = hahigh > math.max(hahigh[1],hahigh[2]) and close  > ChikouSpan and close>SenkouSpanH and (TenkanSen>=KijunSen or close>KijunSen)
+// if (longCondition)
+//strategy.entry(“Long",strategy.long)
+
+
+// shortCondition = halow < min(halow[1],halow[2]) and close
+shortCondition = halow < math.min(halow[1], halow[2]) and close < ChikouSpan and close < SenkouSpanL and (TenkanSen <= KijunSen or close < KijunSen)
+// if (shortCondition)
+//strategy.entry(“Short",strategy.short)
+
+closelong = halow < math.min(halow[1] ,halow[2]) and (TenkanSen or math.max(hahigh[1], hahigh[2]) and (TenkanSen > KijunSen or close > SenkouSpanA or close > KijunSen or close > SenkouSpanL or close> ChikouSpan)
+// if (closeshort)
+//strategy.close(“Short")
