@@ -5,10 +5,11 @@ strategy("Heiken Ashi + Ichimoku Kinko Hyo Strategy", shorttitle="HaI", overlay=
 hahigh = request.security(ticker.heikinashi(syminfo.tickerid), timeframe.period, high)
 halow = request.security(ticker.heikinashi(syminfo.tickerid), timeframe.period, low)
 
-TenkanSenPeriods = input.int(9, minval=1, title="Tenkan Sen Periods")
-KijunSenPeriods = input.int(24, minval=1, title="Kijun Sen Periods")
-SenkouSpanBPeriods = input.int(51, minval=1, title="Senkou Span B Periods")
-displacement = input.int(24, minval=1, title="Displacement")
+// We recommend timeframe of 4h for these settings.
+TenkanSenPeriods = input.int(20, minval=1, title="Tenkan Sen Periods")
+KijunSenPeriods = input.int(60, minval=1, title="Kijun Sen Periods")
+SenkouSpanBPeriods = input.int(120, minval=1, title="Senkou Span B Periods")
+displacement = input.int(30, minval=1, title="Displacement")
 donchian(len) => math.avg(ta.lowest(len), ta.highest(len))
 TenkanSen = donchian(TenkanSenPeriods)
 KijunSen = donchian(KijunSenPeriods)
