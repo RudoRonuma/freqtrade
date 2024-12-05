@@ -1,0 +1,142 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Violent
+
+//@version=4
+study("Stochastic Candles", shorttitle="SC", overlay=true)
+
+_source = close
+
+MA =        input(title="MA", options=["SMA", "EMA", "WMA"], defval="EMA")
+Theme =     input(title="Theme", options=["Theme 1", "Theme 2", "Theme 3"], defval="Theme 3")
+inc =       input(title="Start", defval=10)
+plotNumber= input(title="End", defval=28, minval=1, maxval=28, type=input.integer)
+smooth =    input(title="Smooth", defval=2, type=input.integer)
+
+trans = 0
+
+cp1 = color.new(#01ff00, trans)
+cp2 = color.new(#05d904, trans)
+cp3 = color.new(#04b504, trans)
+cp4 = color.new(#039103, trans)
+cp5 = color.new(#027502, trans)
+
+cn1 = color.new(#ff0505, trans)
+cn2 = color.new(#d60606, trans)
+cn3 = color.new(#b80606, trans)
+cn4 = color.new(#910303, trans)
+cn5 = color.new(#750202, trans)
+
+cp6 =  color.new(#00ddff, trans)
+cp7 =  color.new(#04bcd9, trans)
+cp8 =  color.new(#049cb3, trans)
+cp9 =  color.new(#047f91, trans)
+cp10 = color.new(#046775, trans)
+
+cn6 =  color.new(#d800ff, trans)
+cn7 =  color.new(#bb04db, trans)
+cn8 =  color.new(#9b05b5, trans)
+cn9 =  color.new(#7b038f, trans)
+cn10 = color.new(#640275, trans)
+
+cp11 = color.new(#cf0000, trans)
+cp12 = color.new(#f25811, trans)
+cp13 = color.new(#f29811, trans)
+cp14 = color.new(#eef211, trans)
+cp15 = color.new(#3af211, trans)
+
+cn11 = color.new(#02269e, trans)
+cn12 = color.new(#0f44f5, trans)
+cn13 = color.new(#1176f2, trans)
+cn14 = color.new(#0093c9, trans)
+cn15 = color.new(#11e7f2, trans)
+
+pColour1 = Theme == "Theme 1" ? cp1 : Theme == "Theme 2" ? cp6  : cp11
+pColour2 = Theme == "Theme 1" ? cp2 : Theme == "Theme 2" ? cp7  : cp12
+pColour3 = Theme == "Theme 1" ? cp3 : Theme == "Theme 2" ? cp8  : cp13
+pColour4 = Theme == "Theme 1" ? cp4 : Theme == "Theme 2" ? cp9  : cp14
+pColour5 = Theme == "Theme 1" ? cp5 : Theme == "Theme 2" ? cp10 : cp15
+
+nColour1 = Theme == "Theme 1" ? cn1 : Theme == "Theme 2" ? cn6  : cn11
+nColour2 = Theme == "Theme 1" ? cn2 : Theme == "Theme 2" ? cn7  : cn12
+nColour3 = Theme == "Theme 1" ? cn3 : Theme == "Theme 2" ? cn8  : cn13
+nColour4 = Theme == "Theme 1" ? cn4 : Theme == "Theme 2" ? cn9  : cn14
+nColour5 = Theme == "Theme 1" ? cn5 : Theme == "Theme 2" ? cn10 : cn15
+
+getColour(a) =>
+    if(a >= 90)
+        pColour1
+    else
+        if(a >= 80)
+            pColour2
+        else
+            if(a >= 70)
+                pColour3
+            else
+                if(a >= 60)
+                    pColour4
+                else
+                    if(a >= 50)
+                        pColour5
+                    else
+                        if(a >= 40)
+                            nColour5
+                        else
+                            if(a >= 30)
+                                nColour4
+                            else
+                                if(a >= 20)
+                                    nColour3
+                                else
+                                    if(a >= 10)
+                                        nColour2
+                                    else
+                                        if(a >= 0)
+                                            nColour1
+                                            
+getStoch(i) =>
+    c = (i * inc)
+    if MA == "SMA"
+        sma(stoch(_source, high, low, c), smooth)
+    else
+        if MA == "EMA"
+            ema(stoch(_source, high, low, c), smooth)
+        else
+            if MA == "WMA"
+                wma(stoch(_source, high, low, c), smooth)
+
+stoch1 =  plotNumber > 0  ? getStoch(1 ) : 0
+stoch2 =  plotNumber > 1  ? getStoch(2 ) : 0
+stoch3 =  plotNumber > 2  ? getStoch(3 ) : 0
+stoch4 =  plotNumber > 3  ? getStoch(4 ) : 0
+stoch5 =  plotNumber > 4  ? getStoch(5 ) : 0
+stoch6 =  plotNumber > 5  ? getStoch(6 ) : 0
+stoch7 =  plotNumber > 6  ? getStoch(7 ) : 0
+stoch8 =  plotNumber > 7  ? getStoch(8 ) : 0
+stoch9 =  plotNumber > 8  ? getStoch(9 ) : 0
+stoch10 = plotNumber > 9  ? getStoch(10) : 0
+stoch11 = plotNumber > 10 ? getStoch(11) : 0
+stoch12 = plotNumber > 11 ? getStoch(12) : 0
+stoch13 = plotNumber > 12 ? getStoch(13) : 0
+stoch14 = plotNumber > 13 ? getStoch(14) : 0
+stoch15 = plotNumber > 14 ? getStoch(15) : 0
+stoch16 = plotNumber > 15 ? getStoch(16) : 0
+stoch17 = plotNumber > 16 ? getStoch(17) : 0
+stoch18 = plotNumber > 17 ? getStoch(18) : 0
+stoch19 = plotNumber > 18 ? getStoch(19) : 0
+stoch20 = plotNumber > 19 ? getStoch(20) : 0
+stoch21 = plotNumber > 20 ? getStoch(21) : 0
+stoch22 = plotNumber > 21 ? getStoch(22) : 0
+stoch23 = plotNumber > 22 ? getStoch(23) : 0
+stoch24 = plotNumber > 23 ? getStoch(24) : 0
+stoch25 = plotNumber > 24 ? getStoch(25) : 0
+stoch26 = plotNumber > 25 ? getStoch(26) : 0
+stoch27 = plotNumber > 26 ? getStoch(27) : 0
+stoch28 = plotNumber > 27 ? getStoch(28) : 0
+
+getAverage = (stoch1 + stoch2 + stoch3 + stoch4 + stoch5 + stoch6 + stoch7 + stoch8 + stoch9 + stoch10 + stoch11 + stoch12 + stoch13 + stoch14 + stoch15 + stoch16 + stoch17 + stoch18 + stoch19 + stoch20 + stoch21 + stoch22 + stoch23 + stoch24 + stoch25 + stoch26 + stoch27 + stoch28) / plotNumber
+
+barColour = getColour(getAverage)
+
+barcolor(barColour)
+
+// -->

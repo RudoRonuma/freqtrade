@@ -1,0 +1,56 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © TFlab
+//@version=5
+
+indicator("ABCD Harmonic Pattern [TradingFinder] ABCD Pattern indicator", "ABCD Pattern TFlab" ,overlay = true, max_bars_back = 5000, max_lines_count = 500, max_labels_count = 500)
+
+// Taken from: https://www.tradingview.com/script/FylwShuN-ABCD-Harmonic-Pattern-TradingFinder-ABCD-Pattern-indicator/
+
+// Import Library
+import TFlab/Harmonic_Chart_Pattern_Library_TradingFinder/2 as HP
+import TFlab/AlertSenderLibrary_TradingFinder/1 as AlertSender
+import TFlab/Dark_Light_Theme_TradingFinder_Switching_Colors_Library/1 as Color
+
+
+// Logical Input
+PP = input.int(3, 'ZigZag Pivot Period', group = 'Logical Setting')
+ShVF = input.bool(false , 'Show Valid Format', group = 'Logical Setting')
+FLPC = input.bool(false , 'Show Formation Last Pivot Confirm', group = 'Logical Setting')
+FLPCPeriod =input.int(2, 'Period of Formation Last Pivot', group = 'Logical Setting')
+
+
+// Display Input
+ShowBull = input.bool(true, 'Show Bullish Pattern', group = 'Display Setting')
+ShowBear = input.bool(true, 'Show Bearish Pattern', group = 'Display Setting')
+ColorBull = input.color(#0609bb, 'Color Bullish Pattern', group = 'Display Setting')
+ColorBear = input.color(#0609bb, 'Color Bearish Pattern', group = 'Display Setting')
+LineWidth = input.int(1 , 'Width Line', group = 'Display Setting')
+LabelSize = input.string(size.small , 'Label size' , options = [size.auto, size.tiny, size.small, size.normal, size.large, size.huge], group = 'Display Setting')
+Mode =input.string('Light', 'Switching Colors Theme Mode', options = ['Off', 'Light', 'Dark'], group = 'Display Setting')
+[ColorBullish] = Color.SwitchingColorMode(ColorBull, Mode )
+[ColorBearish] = Color.SwitchingColorMode(ColorBear, Mode )
+
+
+// Alert Input
+Alert = input.string('On', 'Alert', ['On', 'Off'], 'If you turn on the Alert, you can receive alerts and notifications after setting the "Alert".', group = 'Alert')
+AlertName = input.string('Bat Harmonic Pattern [TradingFinder]', 'Alert Name', group = 'Alert')
+Frequncy = input.string('Once Per Bar' , 'Message Frequency' , ['All', 'Once Per Bar' , 'Per Bar Close'], 'The triggering frequency. Possible values are: All'+ 
+ ' (all function calls trigger the alert), Once Per Bar (the first function call during the bar triggers the alert), ' +  
+ ' Per Bar Close (the function call triggers the alert only when it occurs during the last script iteration of the real-time bar,' +  
+ ' when it closes). The default is alert.freq_once_per_bar.)', group = 'Alert')
+UTC = input.string('UTC' , 'Show Alert time by Time Zone', group = 'Alert')
+MessageBull = input.text_area('Long Signal Position Based on Bat Harmonic Pattern' , 'Long Position Message' , group = 'Alert') 
+MessageBear = input.text_area('Short Signal Position Based on Bat Harmonic Pattern', 'Short Position Message',group = 'Alert')
+
+// Call Harmonic Pattern Function
+[BullAlert, BullCandleConfirm] = HP.ABCD('Bullish ABCD', 'Bullish', ShowBull, ColorBullish , LineWidth, LabelSize ,ShVF,  FLPC, FLPCPeriod, PP, 0.382, 0.886, 1.13, 2.618)
+[BearAlert, BearCandleConfirm] = HP.ABCD('Bearish ABCD', 'Bearish', ShowBear, ColorBearish , LineWidth, LabelSize ,ShVF,  FLPC, FLPCPeriod, PP, 0.382, 0.886, 1.13, 2.618)
+
+// Call Alert Sender Function
+AlertSender.AlertSender(BullAlert  , Alert, AlertName , 'Analysis', '', 'Basic' ,'Once Per Bar', 'UTC', 'Off', MessageBull, open, high, low, close,0,0,0,0,0)
+AlertSender.AlertSender(BearAlert , Alert, AlertName , 'Analysis', '', 'Basic' ,'Once Per Bar', 'UTC', 'Off', MessageBear, open, high, low, close,0,0,0,0,0)
+
+// Candle Confirmation
+plotshape(BearCandleConfirm, style = shape.arrowdown, color = color.red)
+plotshape(BullCandleConfirm, style = shape.arrowup, color = color.green, location = location.belowbar )
+
