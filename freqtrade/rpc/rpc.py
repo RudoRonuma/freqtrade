@@ -3,11 +3,11 @@ This module contains class to define a RPC communications
 """
 
 import logging
-import os
 from abc import abstractmethod
 from collections.abc import Generator, Sequence
 from datetime import date, datetime, timedelta, timezone
 from math import isnan
+from pathlib import Path
 from typing import Any, Optional, Union
 
 import psutil
@@ -35,7 +35,6 @@ from freqtrade.enums import (
 from freqtrade.exceptions import ExchangeError, PricingError
 from freqtrade.exchange import timeframe_to_minutes, timeframe_to_msecs
 from freqtrade.exchange.exchange_types import Tickers
-import freqtrade.freqtradebot
 from freqtrade.loggers import bufferHandler
 from freqtrade.persistence import KeyStoreKeys, KeyValueStore, PairLocks, Trade
 from freqtrade.persistence.models import PairLock
@@ -120,7 +119,7 @@ class RPC:
 
         if self._config.get("shareholders", None):
             shareholders_file = self._config["shareholders"].get("file_path", None)
-            if shareholders_file and os.path.exists(shareholders_file):
+            if shareholders_file and Path(shareholders_file).exists():
                 self._shareholders_manager = ShareholdersManager.from_json_file(
                     shareholders_file, self._config)
             else:
