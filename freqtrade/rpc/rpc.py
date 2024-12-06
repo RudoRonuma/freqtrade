@@ -17,6 +17,7 @@ from numpy import inf, int64, mean, nan
 from pandas import DataFrame, NaT
 from sqlalchemy import func, select
 
+import freqtrade
 from freqtrade import __version__
 from freqtrade.configuration.timerange import TimeRange
 from freqtrade.constants import CANCEL_REASON, DEFAULT_DATAFRAME_COLUMNS, Config
@@ -34,6 +35,7 @@ from freqtrade.enums import (
 from freqtrade.exceptions import ExchangeError, PricingError
 from freqtrade.exchange import timeframe_to_minutes, timeframe_to_msecs
 from freqtrade.exchange.exchange_types import Tickers
+import freqtrade.freqtradebot
 from freqtrade.loggers import bufferHandler
 from freqtrade.persistence import KeyStoreKeys, KeyValueStore, PairLocks, Trade
 from freqtrade.persistence.models import PairLock
@@ -41,6 +43,7 @@ from freqtrade.plugins.pairlist.pairlist_helpers import expand_pairlist
 from freqtrade.plugins.shareholders import ShareholdersManager
 from freqtrade.rpc.fiat_convert import CryptoToFiatConverter
 from freqtrade.rpc.rpc_types import RPCSendMsg
+from freqtrade.tradingview.tradingview_client import TradingViewClient
 from freqtrade.util import decimals_per_coin, dt_now, dt_ts_def, format_date, shorten_date
 from freqtrade.util.datetime_helpers import dt_humanize_delta
 from freqtrade.wallets import PositionWallet, Wallet
@@ -101,8 +104,10 @@ class RPC:
     # Bind _fiat_converter if needed
     _fiat_converter: Optional[CryptoToFiatConverter] = None
     _shareholders_manager: Optional[ShareholdersManager] = None
+    _freqtrade: Optional["freqtrade.freqtradebot.FreqtradeBot"] = None
+    _tradingview: Optional["TradingViewClient"] = None
 
-    def __init__(self, freqtrade) -> None:
+    def __init__(self, freqtrade: "freqtrade.freqtradebot.FreqtradeBot") -> None:
         """
         Initializes all enabled rpc modules
         :param freqtrade: Instance of a freqtrade bot
@@ -116,9 +121,12 @@ class RPC:
         if self._config.get("shareholders", None):
             shareholders_file = self._config["shareholders"].get("file_path", None)
             if shareholders_file and os.path.exists(shareholders_file):
-                self._shareholders_manager = ShareholdersManager.from_json_file(shareholders_file, self._config)
+                self._shareholders_manager = ShareholdersManager.from_json_file(
+                    shareholders_file, self._config)
             else:
                 self._shareholders_manager = ShareholdersManager(self._config)
+
+        self._tradingview = TradingViewClient()
 
     @staticmethod
     def _rpc_show_config(

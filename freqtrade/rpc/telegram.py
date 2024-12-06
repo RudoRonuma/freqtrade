@@ -318,6 +318,9 @@ class Telegram(RPCHandler):
             CommandHandler("profit", self._profit),
             CommandHandler("balance", self._balance),
             CommandHandler("positions", self._positions),
+            CommandHandler("coinscan", self._coinscan),
+            CommandHandler("coinscan1", self._coinscan1),
+            CommandHandler("coinscan2", self._coinscan2),
             CommandHandler("shareholders", self._shareholders),
             CommandHandler("start", self._start),
             CommandHandler("stop", self._stop),
@@ -1324,6 +1327,51 @@ class Telegram(RPCHandler):
 
         await self._send_msg(
             output, reload_able=True, callback_path="update_positions", query=update.callback_query
+        )
+
+    @authorized_only
+    async def _coinscan1(self, update: Update, context: CallbackContext) -> None:
+        return await self._coinscan(update, context, 1)
+
+    @authorized_only
+    async def _coinscan2(self, update: Update, context: CallbackContext) -> None:
+        return await self._coinscan(update, context, 2)
+
+    @authorized_only
+    async def _coinscan(self, update: Update, context: CallbackContext,
+                        hard_limit: int = 15) -> None:
+        scan_results = []
+        if not context.args:
+            scan_results = await self._rpc._tradingview.get_coin_scan(limit=hard_limit)
+        else:
+            soft_limit = max(int(hard_limit / 2), 3)
+            for current_coin in context.args:
+                temp_results = await self._rpc._tradingview.get_coin_scan(
+                    current_coin, limit=hard_limit)
+                if not temp_results:
+                    continue
+
+                scan_results.extend(temp_results)
+                if len(scan_results) >= soft_limit:
+                    break
+
+        text = "*Coin Scan Results:*\n"
+        total_written = 0
+
+        for current_result in scan_results:
+            if not current_result:
+                continue
+
+            text += current_result.parse_as_markdown()
+            text += "\n"
+
+            total_written += 1
+            if total_written >= hard_limit:
+                break
+
+        await self._send_msg(
+            msg=text,
+            show_normal_keyboard=False,
         )
 
     @authorized_only
@@ -2340,6 +2388,7 @@ class Telegram(RPCHandler):
         callback_path: str = "",
         reload_able: bool = False,
         query: Optional[CallbackQuery] = None,
+        show_normal_keyboard: Optional[bool] = True,
     ) -> None:
         """
         Send given markdown message
@@ -2348,7 +2397,7 @@ class Telegram(RPCHandler):
         :param parse_mode: telegram parse mode
         :return: None
         """
-        reply_markup: Union[InlineKeyboardMarkup, ReplyKeyboardMarkup]
+        reply_markup: Union[InlineKeyboardMarkup, ReplyKeyboardMarkup] = None
         if query:
             await self._update_msg(
                 query=query,
@@ -2365,7 +2414,7 @@ class Telegram(RPCHandler):
         else:
             if keyboard is not None:
                 reply_markup = InlineKeyboardMarkup(keyboard)
-            else:
+            elif show_normal_keyboard:
                 reply_markup = ReplyKeyboardMarkup(self._keyboard, resize_keyboard=True)
         try:
             try:
