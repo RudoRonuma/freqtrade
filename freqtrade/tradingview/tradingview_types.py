@@ -41,15 +41,17 @@ class CoinScanInfo:
             return "N/A"
 
         is_negative = False
+        emoji = "🟢"
         if self.recommend_all < 0:
             is_negative = True
             self.recommend_all = abs(self.recommend_all)
+            emoji = "🔴"
 
         if self.recommend_all > 0.5:
-            return f"Strong {'Sell' if is_negative else 'Buy'}"
+            return f"{emoji} Strong {'Sell' if is_negative else 'Buy'}"
 
         if self.recommend_all > 0.1:
-            return f"{'Sell' if is_negative else 'Buy'}"
+            return f"{emoji} {'Sell' if is_negative else 'Buy'}"
 
         return "Neutral"
 
@@ -58,15 +60,17 @@ class CoinScanInfo:
             return "N/A"
 
         is_negative = False
+        emoji = "🟢"
         if self.recommend_ma < 0:
             is_negative = True
             self.recommend_ma = abs(self.recommend_ma)
+            emoji = "🔴"
 
         if self.recommend_ma > 0.5:
-            return f"Strong {'Sell' if is_negative else 'Buy'}"
+            return f"{emoji} Strong {'Sell' if is_negative else 'Buy'}"
 
         if self.recommend_ma > 0.1:
-            return f"{'Sell' if is_negative else 'Buy'}"
+            return f"{emoji} {'Sell' if is_negative else 'Buy'}"
 
         return "Neutral"
 
@@ -75,15 +79,17 @@ class CoinScanInfo:
             return "N/A"
 
         is_negative = False
+        emoji = "🟢"
         if self.recommend_other < 0:
             is_negative = True
             self.recommend_other = abs(self.recommend_other)
+            emoji = "🔴"
 
         if self.recommend_other > 0.5:
-            return f"Strong {'Sell' if is_negative else 'Buy'}"
+            return f"{emoji} Strong {'Sell' if is_negative else 'Buy'}"
 
         if self.recommend_other > 0.1:
-            return f"{'Sell' if is_negative else 'Buy'}"
+            return f"{emoji} {'Sell' if is_negative else 'Buy'}"
 
         return "Neutral"
 
