@@ -1370,6 +1370,7 @@ class Telegram(RPCHandler):
                     show_normal_keyboard=False,
                 )
                 text = header_text
+            text += result_text
 
             total_written += 1
             if total_written >= hard_limit:
