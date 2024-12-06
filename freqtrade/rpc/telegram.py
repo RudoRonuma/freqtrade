@@ -1341,19 +1341,18 @@ class Telegram(RPCHandler):
     async def _coinscan(self, update: Update, context: CallbackContext,
                         hard_limit: int = 15) -> None:
         scan_results = []
+        original_limit = hard_limit
+        hard_limit *= (len(context.args) or 1)
         if not context.args:
             scan_results = await self._rpc._tradingview.get_coin_scan(limit=hard_limit)
         else:
-            soft_limit = max(int(hard_limit / 2), 3)
             for current_coin in context.args:
                 temp_results = await self._rpc._tradingview.get_coin_scan(
-                    current_coin, limit=hard_limit)
+                    current_coin, limit=original_limit)
                 if not temp_results:
                     continue
 
                 scan_results.extend(temp_results)
-                if len(scan_results) >= soft_limit:
-                    break
 
         text = "✨*Coin Scan Results:*\n\n"
         total_written = 0
