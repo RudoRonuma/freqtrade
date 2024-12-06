@@ -1355,7 +1355,7 @@ class Telegram(RPCHandler):
                 if len(scan_results) >= soft_limit:
                     break
 
-        text = "*Coin Scan Results:*\n"
+        text = "✨*Coin Scan Results:*\n\n"
         total_written = 0
 
         for current_result in scan_results:
