@@ -1354,24 +1354,32 @@ class Telegram(RPCHandler):
 
                 scan_results.extend(temp_results)
 
-        text = "✨*Coin Scan Results:*\n\n"
+        header_text = "✨*Coin Scan Results:*\n\n"
+        text = header_text
         total_written = 0
 
         for current_result in scan_results:
             if not current_result:
                 continue
 
-            text += current_result.parse_as_markdown()
-            text += "\n"
+            result_text = current_result.parse_as_markdown() + "\n"
+            # Check if adding the next result would exceed the message limit
+            if len(text) + len(result_text) > MAX_MESSAGE_LENGTH:
+                await self._send_msg(
+                    msg=text,
+                    show_normal_keyboard=False,
+                )
+                text = header_text
 
             total_written += 1
             if total_written >= hard_limit:
                 break
 
-        await self._send_msg(
-            msg=text,
-            show_normal_keyboard=False,
-        )
+        if text != header_text:
+            await self._send_msg(
+                msg=text,
+                show_normal_keyboard=False,
+            )
 
     @authorized_only
     async def _shareholders(self, update: Update, context: CallbackContext) -> None:
